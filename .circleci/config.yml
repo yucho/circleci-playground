@@ -21,6 +21,9 @@ commands:
         default: "false"
     steps:
       - run: SOME_VAR="<< parameters.value >>"
+  print-tags:
+    steps:
+      - run: git tag -l
   check-version-tag:
     steps:
       - run:
@@ -37,6 +40,7 @@ jobs:
     executor: node
     steps:
       - checkout
+      - print-tags
       - check-version-tag
 
 workflows:
