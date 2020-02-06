@@ -1,0 +1,19 @@
+{
+  "name": "circleci-playground",
+  "version": "2.0.0-0",
+  "description": "Play with CircleCI config",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yucho/circleci-playground.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yucho/circleci-playground/issues"
+  },
+  "homepage": "https://github.com/yucho/circleci-playground#readme"
+}
