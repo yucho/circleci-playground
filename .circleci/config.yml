@@ -11,6 +11,16 @@ commands:
     description: Greeting is important
     steps:
       - run: echo "What's up duck?"
+  print-some-var:
+    steps:
+      - run: echo $SOME_VAR
+  set-some-var:
+    parameters:
+      value:
+        type: string
+        default: "false"
+    steps:
+      - run: SOME_VAR="<< parameters.value >>"
 
 
 jobs:
@@ -18,6 +28,13 @@ jobs:
     executor: node
     steps:
       - say-hi
+      - print-some-var
+      - set-some-var:
+          value: I am your father
+      - print-some-var
+      - set-some-var:
+          value: "true"
+      - print-some-var
 
 workflows:
   some-workflow:
