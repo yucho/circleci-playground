@@ -21,20 +21,23 @@ commands:
         default: "false"
     steps:
       - run: SOME_VAR="<< parameters.value >>"
-
+  check-version-tag:
+    steps:
+      - run:
+          command: |
+            IS_VALID_SEMVER="^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$"
+            if [[ $(git tag --contains HEAD) =~ $(echo $IS_VALID_SEMVER) ]]; then
+                echo "proper version tag"
+            else
+                echo "nope"
+            fi
 
 jobs:
   some-job:
     executor: node
     steps:
-      - say-hi
-      - print-some-var
-      - set-some-var:
-          value: I am your father
-      - print-some-var
-      - set-some-var:
-          value: "true"
-      - print-some-var
+      - checkout
+      - check-version-tag
 
 workflows:
   some-workflow:
