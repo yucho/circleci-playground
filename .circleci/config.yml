@@ -25,20 +25,20 @@ commands:
       semver:
         type: enum
         enum: ["major", "minor", "patch"]
+      protocol:
+        type: string
+        default: https://
+      push-url:
+        type: string
+        default: github.com/yucho/circleci-playground.git
     steps:
       - run:
           command: |
-            pwd
+            git config credential.helper 'cache --timeout=120'
             git config user.email "$GIT_USER_EMAIL"
             git config user.name "$GIT_USER_NAME"
             npm version << parameters.semver >>
-      - run:
-          command: |
-            echo "$GIT_USER_EMAIL"
-            echo "GIT_USER_NAME"
-      - run:
-          command: |
-            git push
+            git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master   # Push quietly to prevent displaying token in shell
 
 jobs:
   npm-version-bump:
@@ -54,12 +54,13 @@ jobs:
       - checkout
       - version-update:
           semver: patch
+          push-url: github.com/yucho/circleci-playground.git
 
 workflows:
   versioning:
     jobs:
       - git-version-update:
+          context: yucho-open-source
           filters:
             tags:
               ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
-          context: yucho-open-source
