@@ -7,19 +7,6 @@ executors:
       - image: circleci/node:12.0-browsers
 
 commands:
-  print-tags:
-    steps:
-      - run: git tag -l
-  check-version-tag:
-    steps:
-      - run:
-          command: |
-            IS_VALID_SEMVER="^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$"
-            if [[ $(git tag --contains HEAD) =~ $(echo $IS_VALID_SEMVER) ]]; then
-                echo "proper version tag"
-            else
-                echo "nope"
-            fi
   version-bump:
     parameters:
       semver:
@@ -34,18 +21,13 @@ commands:
     steps:
       - run:
           command: |
-            IS_VALID_SEMVER="^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$"
-            if [[ $(git tag --contains HEAD) =~ $(echo $IS_VALID_SEMVER) ]]; then
-              echo "Version update error: version tag already exists"
-            else
-              git config credential.helper 'cache --timeout=120'
-              git config user.email "$GIT_USER_EMAIL"
-              git config user.name "$GIT_USER_NAME"
-              npm version << parameters.semver >>
+            git config credential.helper 'cache --timeout=120'
+            git config user.email "$GIT_USER_EMAIL"
+            git config user.name "$GIT_USER_NAME"
+            npm version << parameters.semver >>
 
-              # Push quietly to prevent displaying token in shell
-              git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master --tags
-            fi
+            # Push quietly to prevent displaying token in shell
+            git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master --tags
 
 jobs:
   filter-master:
@@ -59,38 +41,34 @@ jobs:
             if [[ $(git tag --contains HEAD) =~ $(echo $IS_VALID_SEMVER) ]]; then
               # Error out to prevent downstream jobs from running
                 exit 1
-            else
-                exit 1
             fi
 
-  npm-version-bump:
-    executor: node-executor
-    steps:
-      - checkout
-      - print-tags
-      - check-version-tag
-
-  patch-version-bump:
+  run-patch-version-bump:
     executor: node-executor
     steps:
       - checkout
       - version-bump:
           semver: patch
-          push-url: github.com/yucho/circleci-playground.git
-  minor-version-bump:
+
+  run-minor-version-bump:
     executor: node-executor
     steps:
       - checkout
       - version-bump:
           semver: minor
-          push-url: github.com/yucho/circleci-playground.git
-  major-version-bump:
+
+  run-major-version-bump:
     executor: node-executor
     steps:
       - checkout
       - version-bump:
           semver: major
-          push-url: github.com/yucho/circleci-playground.git
+
+  run-deploy:
+    executor: node-executor
+    steps:
+      - run:
+          command: echo "Put deploy code here"
 
 workflows:
   versioning:
@@ -100,28 +78,40 @@ workflows:
             branches:
               only: master
       - patch-version-bump:
-          context: yucho-open-source
           type: approval
           requires:
             - filter-master
+      - run-patch-version-bump:
+          context: yucho-open-source
+          requires:
+            - patch-version-bump
       - minor-version-bump:
-          context: yucho-open-source
           type: approval
           requires:
             - filter-master
+      - run-minor-version-bump:
+          context: yucho-open-source
+          requires:
+            - minor-version-bump
       - major-version-bump:
-          context: yucho-open-source
           type: approval
           requires:
             - filter-master
-
-  i-should-not-run-after-approval:
-    jobs:
-      - git-version-update:
-          type: approval
+      - run-major-version-bump:
           context: yucho-open-source
+          requires:
+            - major-version-bump
+
+  deploy:
+    jobs:
+      - deploy:
+          type: approval
           filters:
             branches:
               ignore: /.*/
             tags:
               only: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
+      - run-deploy:
+          context: yucho-open-source
+          requires:
+            - deploy
