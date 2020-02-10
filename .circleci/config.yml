@@ -38,7 +38,9 @@ commands:
             git config user.email "$GIT_USER_EMAIL"
             git config user.name "$GIT_USER_NAME"
             npm version << parameters.semver >>
-            git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master   # Push quietly to prevent displaying token in shell
+
+            # Push quietly to prevent displaying token in shell
+            git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master --tags
 
 jobs:
   npm-version-bump:
