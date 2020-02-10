@@ -20,7 +20,7 @@ commands:
             else
                 echo "nope"
             fi
-  version-update:
+  version-bump:
     parameters:
       semver:
         type: enum
@@ -46,10 +46,11 @@ commands:
             git tag --contains HEAD
 
 jobs:
-  checkout-master:
+  filter-master:
     executor: node-executor
     steps:
-      - checkout
+      - run:
+          command: echo "Due to limitation in Circle CI, we need this job to filter master"
   npm-version-bump:
     executor: node-executor
     steps:
@@ -57,42 +58,78 @@ jobs:
       - print-tags
       - check-version-tag
 
-  git-version-update:
+  patch-version-bump:
     executor: node-executor
     steps:
       - checkout
-      - version-update:
+      - version-bump:
           semver: patch
           push-url: github.com/yucho/circleci-playground.git
+  minor-version-bump:
+    executor: node-executor
+    steps:
+      - checkout
+      - version-bump:
+          semver: minor
+          push-url: github.com/yucho/circleci-playground.git
+  major-version-bump:
+    executor: node-executor
+    steps:
+      - checkout
+      - version-bump:
+          semver: major
+          push-url: github.com/yucho/circleci-playground.git
+  what-the-fuck:
+    executor: node-executor
+    steps:
+      - run:
+          command: echo what the fuck
 
 workflows:
   versioning:
     jobs:
-      - git-version-update:
+      - filter-master:
+          filters:
+            branches:
+              only: master
+            tags:
+              only: /.*/
+      - patch-version-bump:
           context: yucho-open-source
+          requires:
+            - filter-master
           filters:
             branches:
               ignore: /.*/
             tags:
               ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
-  i-should-run:
-    jobs:
-      - git-version-update:
+      - minor-version-bump:
           context: yucho-open-source
+          requires:
+            - filter-master
           filters:
             branches:
               ignore: /.*/
             tags:
-              only: v2.2.5
-  i-should-not-run:
-    jobs:
-      - git-version-update:
+              ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
+      - major-version-bump:
           context: yucho-open-source
+          requires:
+            - filter-master
           filters:
             branches:
               ignore: /.*/
             tags:
-              ignore: v2.2.5
+              ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
+      - what-the-fuck:
+          requires:
+            - filter-master
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+
   i-should-not-run-after-approval:
     jobs:
       - git-version-update:
