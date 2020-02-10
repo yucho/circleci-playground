@@ -51,6 +51,7 @@ jobs:
   filter-master:
     executor: node-executor
     steps:
+      - checkout
       - run:
           command: |
             # Due to limitation in Circle CI, we need this job to filter out versioned commit
