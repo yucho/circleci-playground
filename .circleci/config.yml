@@ -77,10 +77,18 @@ workflows:
           filters:
             branches:
               only: master
+      - check-tag:
+          requires:
+            - filter-master
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
       - patch-version-bump:
           type: approval
           requires:
-            - filter-master
+            - check-tag
       - run-patch-version-bump:
           context: yucho-open-source
           requires:
@@ -88,7 +96,7 @@ workflows:
       - minor-version-bump:
           type: approval
           requires:
-            - filter-master
+            - check-tag
       - run-minor-version-bump:
           context: yucho-open-source
           requires:
@@ -96,14 +104,12 @@ workflows:
       - major-version-bump:
           type: approval
           requires:
-            - filter-master
+            - check-tag
       - run-major-version-bump:
           context: yucho-open-source
           requires:
             - major-version-bump
 
-  deploy:
-    jobs:
       - deploy:
           type: approval
           filters:
