@@ -1,6 +1,6 @@
 {
   "name": "circleci-playground",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "Play with CircleCI config",
   "main": "index.js",
   "scripts": {
