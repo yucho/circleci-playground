@@ -34,23 +34,34 @@ commands:
     steps:
       - run:
           command: |
-            # git config credential.helper 'cache --timeout=120'
-            # git config user.email "$GIT_USER_EMAIL"
-            # git config user.name "$GIT_USER_NAME"
-            # npm version << parameters.semver >>
+            IS_VALID_SEMVER="^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$"
+            if [[ $(git tag --contains HEAD) =~ $(echo $IS_VALID_SEMVER) ]]; then
+              echo "Version update error: version tag already exists"
+            else
+              git config credential.helper 'cache --timeout=120'
+              git config user.email "$GIT_USER_EMAIL"
+              git config user.name "$GIT_USER_NAME"
+              npm version << parameters.semver >>
 
-            # Push quietly to prevent displaying token in shell
-            # git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master --tags
-
-            git tag
-            git tag --contains HEAD
+              # Push quietly to prevent displaying token in shell
+              git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master --tags
+            fi
 
 jobs:
   filter-master:
     executor: node-executor
     steps:
       - run:
-          command: echo "Due to limitation in Circle CI, we need this job to filter master"
+          command: |
+            # Due to limitation in Circle CI, we need this job to filter out versioned commit
+            IS_VALID_SEMVER="^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$"
+            if [[ $(git tag --contains HEAD) =~ $(echo $IS_VALID_SEMVER) ]]; then
+              # Error out to prevent downstream jobs from running
+                exit 1
+            else
+                exit 0
+            fi
+
   npm-version-bump:
     executor: node-executor
     steps:
@@ -96,31 +107,19 @@ workflows:
               only: /.*/
       - patch-version-bump:
           context: yucho-open-source
+          type: approval
           requires:
             - filter-master
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
       - minor-version-bump:
           context: yucho-open-source
+          type: approval
           requires:
             - filter-master
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
       - major-version-bump:
           context: yucho-open-source
+          type: approval
           requires:
             - filter-master
-          filters:
-            branches:
-              ignore: /.*/
-            tags:
-              ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
       - what-the-fuck:
           requires:
             - filter-master
