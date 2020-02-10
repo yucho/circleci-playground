@@ -115,3 +115,6 @@ workflows:
           context: yucho-open-source
           requires:
             - deploy
+          filters:
+            branches:
+              only: master
