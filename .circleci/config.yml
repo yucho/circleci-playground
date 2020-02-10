@@ -34,15 +34,22 @@ commands:
     steps:
       - run:
           command: |
-            git config credential.helper 'cache --timeout=120'
-            git config user.email "$GIT_USER_EMAIL"
-            git config user.name "$GIT_USER_NAME"
-            npm version << parameters.semver >>
+            # git config credential.helper 'cache --timeout=120'
+            # git config user.email "$GIT_USER_EMAIL"
+            # git config user.name "$GIT_USER_NAME"
+            # npm version << parameters.semver >>
 
             # Push quietly to prevent displaying token in shell
-            git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master --tags
+            # git push -q << parameters.protocol >>${GITHUB_PERSONAL_TOKEN}@<< parameters.push-url >> master --tags
+
+            git tag
+            git tag --contains HEAD
 
 jobs:
+  checkout-master:
+    executor: node-executor
+    steps:
+      - checkout
   npm-version-bump:
     executor: node-executor
     steps:
@@ -64,5 +71,35 @@ workflows:
       - git-version-update:
           context: yucho-open-source
           filters:
+            branches:
+              ignore: /.*/
             tags:
               ignore: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
+  i-should-run:
+    jobs:
+      - git-version-update:
+          context: yucho-open-source
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: v2.2.5
+  i-should-not-run:
+    jobs:
+      - git-version-update:
+          context: yucho-open-source
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              ignore: v2.2.5
+  i-should-not-run-after-approval:
+    jobs:
+      - git-version-update:
+          type: approval
+          context: yucho-open-source
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v?((([0-9]+)\.([0-9]+)\.([0-9]+)(-([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)(\+([0-9a-zA-Z-]+(\.[0-9a-zA-Z-]+)*))?)$/
