@@ -42,6 +42,11 @@ jobs:
               # Error out to prevent downstream jobs from running
                 exit 1
             fi
+  check-tag:
+    executor: node-executor
+    steps:
+      - run:
+          command: echo do nothing
 
   run-patch-version-bump:
     executor: node-executor
@@ -78,6 +83,7 @@ workflows:
             branches:
               only: master
       - check-tag:
+          type: approval
           requires:
             - filter-master
           filters:
